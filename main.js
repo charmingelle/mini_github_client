@@ -60,7 +60,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 0);
+/******/ 	return __webpack_require__(__webpack_require__.s = 3);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -68,21 +68,80 @@
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony export (immutable) */ __webpack_exports__["clean"] = clean;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__views_FirstScreen__ = __webpack_require__(2);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__views_CardsList__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__views_SortingPanel__ = __webpack_require__(5);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__views_FilterPanel__ = __webpack_require__(6);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__api_js__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__utils__ = __webpack_require__(7);
+/* harmony export (immutable) */ __webpack_exports__["k"] = getPageNumber;
+/* harmony export (immutable) */ __webpack_exports__["l"] = isScrolledToBottom;
+/* harmony export (immutable) */ __webpack_exports__["e"] = filterByPresentOpenIssues;
+/* harmony export (immutable) */ __webpack_exports__["f"] = filterByPresentTopics;
+/* harmony export (immutable) */ __webpack_exports__["g"] = filterByStarred;
+/* harmony export (immutable) */ __webpack_exports__["h"] = filterByUpdatedAfter;
+/* harmony export (immutable) */ __webpack_exports__["i"] = filterForks;
+/* harmony export (immutable) */ __webpack_exports__["j"] = filterSources;
+/* harmony export (immutable) */ __webpack_exports__["d"] = filterByLanguage;
+/* harmony export (immutable) */ __webpack_exports__["c"] = clean;
+/* harmony export (immutable) */ __webpack_exports__["a"] = appendChildren;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__components_SortingPanel__ = __webpack_require__(1);
 
 
+function createSorter(key) {
+  return function(arr, order) {
+    arr.sort((a, b) => {
+      if (a[key] > b[key]) return order;
+      if (a[key] < b[key]) return -order;
+    });
+  };
+}
+
+const cardSorters = {
+  [__WEBPACK_IMPORTED_MODULE_0__components_SortingPanel__["b" /* REPO_NAME_SORT */]]: createSorter('name'),
+  [__WEBPACK_IMPORTED_MODULE_0__components_SortingPanel__["c" /* STARS_COUNT_SORT */]]: createSorter('stargazers_count'),
+  [__WEBPACK_IMPORTED_MODULE_0__components_SortingPanel__["a" /* OPEN_ISSUES_SORT */]]: createSorter('open_issues_count'),
+  [__WEBPACK_IMPORTED_MODULE_0__components_SortingPanel__["d" /* UPDATE_DATE_SORT */]]: createSorter('updated_at')
+};
+/* harmony export (immutable) */ __webpack_exports__["b"] = cardSorters;
 
 
+function getPageNumber(reposAmount) {
+  const MAX_REPOS_ON_PAGE = 30;
 
+  return reposAmount / MAX_REPOS_ON_PAGE + 1;
+}
 
+function isScrolledToBottom() {
+  return (
+    window.innerHeight + document.body.scrollTop + 1 >=
+    document.body.scrollHeight
+  );
+}
 
+function filterByPresentOpenIssues(arr) {
+  return arr.filter(element => element.open_issues_count > 0);
+}
+
+function filterByPresentTopics(arr) {
+  return arr.filter(
+    element => Array.isArray(element.topics) && element.topics.length
+  );
+}
+
+function filterByStarred(arr, times) {
+  return arr.filter(element => element.stargazers_count >= times);
+}
+
+function filterByUpdatedAfter(arr, date) {
+  return arr.filter(element => element.updated_at - date > 0);
+}
+
+function filterForks(arr) {
+  return arr.filter(element => element.fork === true);
+}
+
+function filterSources(arr) {
+  return arr.filter(element => element.fork === false);
+}
+
+function filterByLanguage(arr, language) {
+  return arr.filter(element => element.language === language);
+}
 
 function clean(domElement) {
   while (domElement.firstChild) {
@@ -90,246 +149,112 @@ function clean(domElement) {
   }
 }
 
-const sortOrderCorrespondence = {
-  ascending: 1,
-  descending: -1
-};
-
-const buttonHandlerCorrespondence = {
-  'repo-name-sort': __WEBPACK_IMPORTED_MODULE_5__utils__["k" /* sortByRepoName */],
-  'stars-count-sort': __WEBPACK_IMPORTED_MODULE_5__utils__["l" /* sortByStarsCount */],
-  'open-issues-sort': __WEBPACK_IMPORTED_MODULE_5__utils__["j" /* sortByOpenIssuesCount */],
-  'update-date-sort': __WEBPACK_IMPORTED_MODULE_5__utils__["m" /* sortByUpdatedDate */]
-};
-
-class App {
-  constructor() {
-    this.appWasStarted = false;
-    this.owner = '';
-    this.reposTotal = 0;
-    this.onSubmitClick = this.onSubmitClick.bind(this);
-    this.firstScreen = new __WEBPACK_IMPORTED_MODULE_0__views_FirstScreen__["a" /* default */](this.onSubmitClick);
-    this.cardsData = [];
-    this.cardsList = new __WEBPACK_IMPORTED_MODULE_1__views_CardsList__["a" /* default */]();
-    this.isLoading = false;
-    this.languages = [];
-    this.sortState = {
-      button: 'repo-name-sort',
-      order: 'ascending'
-    };
-    this.filterState = {
-      hasOpenIssues: false,
-      hasTopics: false,
-      starred: 0,
-      date: '',
-      type: 'all',
-      language: 'All languages'
-    };
-
-    this.mainScreen = document.getElementById('main-screen');
-
-    this.initAppWithData = this.initAppWithData.bind(this);
-    // this.returnLoadedData = this.returnLoadedData.bind(this);
-    this.addCardsData = this.addCardsData.bind(this);
-    this.loadNewCards = this.loadNewCards.bind(this);
-    this.sortCardsData = this.sortCardsData.bind(this);
-    this.filterCardsData = this.filterCardsData.bind(this);
-    this.passData = this.passData.bind(this);
-    this.catchError = this.catchError.bind(this);
-
-    window.addEventListener('scroll', this.loadNewCards);
-
-    this.onSortPanelChange = this.onSortPanelChange.bind(this);
-    this.sortingPanel = new __WEBPACK_IMPORTED_MODULE_2__views_SortingPanel__["a" /* default */](this.onSortPanelChange);
-
-    this.onFilterPanelChange = this.onFilterPanelChange.bind(this);
-    this.filterPanel = new __WEBPACK_IMPORTED_MODULE_3__views_FilterPanel__["a" /* default */](
-      this.onFilterPanelChange,
-      this.languages
-    );
-  }
-
-  getLanguages(cardsData) {
-    return cardsData.reduce(
-      function(languages, element) {
-        if (
-          element.language !== null &&
-          !languages.includes(element.language)
-        ) {
-          languages.push(element.language);
-        }
-        return languages;
-      },
-      ['All languages']
-    );
-  }
-
-  saveDatesInDateFormat(data) {
-    data.forEach(function(element) {
-      element.updated_at = new Date(element.updated_at);
-    });
-  }
-
-  passData(data) {
-    this.isLoading = false;
-    return data;
-  }
-
-  catchError(error) {
-    this.isLoading = false;
-    alert(error.message);
-  }
-
-  getCardsData(owner) {
-    this.isLoading = true;
-    const url = `users/${owner}/repos?page=${Object(__WEBPACK_IMPORTED_MODULE_5__utils__["h" /* getPageNumber */])(
-      this.cardsData.length
-    )}`;
-
-    return Object(__WEBPACK_IMPORTED_MODULE_4__api_js__["a" /* get */])(url, {
-      Accept: 'application/vnd.github.mercy-preview+json'
-    }).then(this.passData, this.catchError);
-  }
-
-  getNumberOfRepos(owner) {
-    return Object(__WEBPACK_IMPORTED_MODULE_4__api_js__["a" /* get */])(`users/${owner}`).then(function(data) {
-      return data.public_repos;
-    }, this.catchError);
-  }
-
-  drawLoader() {
-    clean(this.mainScreen);
-    this.mainScreen.innerText = 'Loading...';
-  }
-
-  loadNewCards() {
-    if (Object(__WEBPACK_IMPORTED_MODULE_5__utils__["i" /* isScrolledToBottom */])()) {
-      let isAvailbaleRepos = this.cardsData.length < this.reposTotal;
-
-      if (isAvailbaleRepos) {
-        if (!this.isLoading) {
-          this.getCardsData(this.owner).then(data => {
-            this.addCardsData(data);
-            this.cardsList.addCards(this.sortCardsData(this.filterCardsData()));
-          });
-        }
-      } else {
-        window.removeEventListener('scroll', this.loadNewCards);
-      }
-    }
-  }
-
-  onSubmitClick(owner) {
-    this.drawLoader();
-    this.owner = owner;
-    Promise.all([this.getCardsData(owner), this.getNumberOfRepos(owner)]).then(
-      this.initAppWithData
-    );
-  }
-
-  addCardsData(newCardsData) {
-    this.saveDatesInDateFormat(newCardsData);
-    this.cardsData = this.cardsData.concat(newCardsData);
-  }
-
-  initAppWithData(data) {
-    let [cardsData, reposTotal] = data;
-
-    this.saveDatesInDateFormat(cardsData);
-    this.cardsData = cardsData;
-    this.reposTotal = reposTotal;
-    this.appWasStarted = true;
-    this.cardsList.addCards(this.cardsData);
-    this.languages = this.getLanguages(this.cardsData);
-    this.filterPanel.drawLanguages(this.languages);
-    this.draw();
-  }
-
-  draw() {
-    clean(this.mainScreen);
-
-    if (!this.appWasStarted) {
-      this.mainScreen.appendChild(this.firstScreen.domElement);
-    } else {
-      this.mainScreen.appendChild(this.filterPanel.domElement);
-      this.mainScreen.appendChild(this.sortingPanel.domElement);
-      this.mainScreen.appendChild(this.cardsList.domElement);
-    }
-  }
-
-  onSortPanelChange(sortState) {
-    this.sortState = sortState;
-
-    this.cardsList.addCards(this.sortCardsData(this.filterCardsData()));
-  }
-
-  sortCardsData(data) {
-    let sortedCardsData = data.slice(); // Copied the array
-
-    buttonHandlerCorrespondence[this.sortState.button](
-      sortedCardsData,
-      sortOrderCorrespondence[this.sortState.order]
-    );
-    return sortedCardsData;
-  }
-
-  onFilterPanelChange(filterState) {
-    this.filterState = filterState;
-
-    this.cardsList.addCards(this.sortCardsData(this.filterCardsData()));
-  }
-
-  filterCardsData() {
-    let filteredCardsData = this.cardsData;
-
-    if (this.filterState.hasOpenIssues) {
-      filteredCardsData = Object(__WEBPACK_IMPORTED_MODULE_5__utils__["b" /* filterByPresentOpenIssues */])(filteredCardsData);
-    }
-
-    if (this.filterState.hasTopics) {
-      filteredCardsData = Object(__WEBPACK_IMPORTED_MODULE_5__utils__["c" /* filterByPresentTopics */])(filteredCardsData);
-    }
-
-    if (this.filterState.starred > 0) {
-      filteredCardsData = Object(__WEBPACK_IMPORTED_MODULE_5__utils__["d" /* filterByStarred */])(
-        filteredCardsData,
-        this.filterState.starred
-      );
-    }
-
-    if (this.filterState.date) {
-      filteredCardsData = Object(__WEBPACK_IMPORTED_MODULE_5__utils__["e" /* filterByUpdatedAfter */])(
-        filteredCardsData,
-        this.filterState.date
-      );
-    }
-
-    if (this.filterState.type === 'forks') {
-      filteredCardsData = Object(__WEBPACK_IMPORTED_MODULE_5__utils__["f" /* filterForks */])(filteredCardsData);
-    }
-
-    if (this.filterState.type === 'sources') {
-      filteredCardsData = Object(__WEBPACK_IMPORTED_MODULE_5__utils__["g" /* filterSources */])(filteredCardsData);
-    }
-
-    if (this.filterState.language !== 'All languages') {
-      filteredCardsData = Object(__WEBPACK_IMPORTED_MODULE_5__utils__["a" /* filterByLanguage */])(
-        filteredCardsData,
-        this.filterState.language
-      );
-    }
-    this.languages = this.getLanguages(filteredCardsData);
-    this.filterPanel.redrawLanguages(this.languages);
-    return filteredCardsData;
-  }
+function appendChildren(target, children) {
+  children.forEach(child => target.appendChild(child));
 }
-
-const app = new App();
-app.draw();
 
 
 /***/ }),
 /* 1 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__(0);
+
+
+const REPO_NAME_SORT = 'repo-name-sort';
+/* harmony export (immutable) */ __webpack_exports__["b"] = REPO_NAME_SORT;
+
+const STARS_COUNT_SORT = 'stars-count-sort';
+/* harmony export (immutable) */ __webpack_exports__["c"] = STARS_COUNT_SORT;
+
+const OPEN_ISSUES_SORT = 'open-issues-sort';
+/* harmony export (immutable) */ __webpack_exports__["a"] = OPEN_ISSUES_SORT;
+
+const UPDATE_DATE_SORT = 'update-date-sort';
+/* harmony export (immutable) */ __webpack_exports__["d"] = UPDATE_DATE_SORT;
+
+
+class SortingPanel {
+  constructor(onChange) {
+    this._sortingPanel = document.createElement('div');
+
+    let repoNameButton = this.createButton(REPO_NAME_SORT, 'Sort by repo name');
+    let starsCountButton = this.createButton(
+      STARS_COUNT_SORT,
+      'Sort by stars count'
+    );
+    let openIssuesCountButton = this.createButton(
+      OPEN_ISSUES_SORT,
+      'Sort by open issues count'
+    );
+    let updatedDateButton = this.createButton(
+      UPDATE_DATE_SORT,
+      'Sort by updated date'
+    );
+
+    const buttons = [
+      repoNameButton,
+      starsCountButton,
+      openIssuesCountButton,
+      updatedDateButton
+    ];
+
+    this._sortingPanel.id = 'sorting-panel';
+    Object(__WEBPACK_IMPORTED_MODULE_0__utils__["a" /* appendChildren */])(this._sortingPanel, buttons);
+
+    this._sortingPanel.addEventListener('click', event => {
+      const target = event.target.closest('.sort');
+
+      if (target) {
+        onChange({
+          button: target.id,
+          order: target.getAttribute('data-order')
+        });
+
+        buttons.forEach(button => button.classList.remove('clicked'));
+        target.classList.add('clicked');
+
+        if (target.getAttribute('data-order') === 'descending') {
+          target.setAttribute('data-order', 'ascending');
+          target.childNodes[1].innerHTML = '&#8593;';
+        } else {
+          target.setAttribute('data-order', 'descending');
+          target.childNodes[1].innerHTML = '&#8595;';
+        }
+      }
+    });
+  }
+
+  createButton(id, title) {
+    let button = document.createElement('button');
+    button.id = id;
+    button.classList.add('sort');
+    button.setAttribute('data-order', 'ascending');
+
+    let buttonTitle = document.createElement('span');
+    buttonTitle.textContent = title;
+    buttonTitle.classList.add('button-title');
+
+    let arrow = document.createElement('span');
+    arrow.classList.add('sort-order-arrow');
+
+    button.appendChild(buttonTitle);
+    button.appendChild(arrow);
+
+    return button;
+  }
+
+  get domElement() {
+    return this._sortingPanel;
+  }
+}
+/* harmony export (immutable) */ __webpack_exports__["e"] = SortingPanel;
+
+
+
+/***/ }),
+/* 2 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -362,10 +287,279 @@ function get(path, headers = {}) {
 
 
 /***/ }),
-/* 2 */
+/* 3 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__components_App__ = __webpack_require__(4);
+
+
+const app = new __WEBPACK_IMPORTED_MODULE_0__components_App__["a" /* default */]();
+app.draw();
+
+
+/***/ }),
+/* 4 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__FirstScreen__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__CardsList__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__SortingPanel__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__FilterPanel__ = __webpack_require__(8);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__api__ = __webpack_require__(2);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__utils__ = __webpack_require__(0);
+
+
+
+
+
+
+
+
+
+
+const sortOrderMap = {
+  ascending: 1,
+  descending: -1
+};
+
+class App {
+  constructor() {
+    this.appWasStarted = false;
+    this.owner = '';
+    this.reposTotal = 0;
+    this.onSubmitClick = this.onSubmitClick.bind(this);
+    this.firstScreen = new __WEBPACK_IMPORTED_MODULE_0__FirstScreen__["a" /* default */](this.onSubmitClick);
+    this.cardsData = [];
+    this.cardsList = new __WEBPACK_IMPORTED_MODULE_1__CardsList__["a" /* default */]();
+    this.isLoading = false;
+    this.languages = [];
+    this.sortState = {
+      button: 'repo-name-sort',
+      order: 'ascending'
+    };
+    this.filterState = {
+      hasOpenIssues: false,
+      hasTopics: false,
+      starred: 0,
+      date: '',
+      type: 'all',
+      language: 'All languages'
+    };
+
+    this.mainScreen = document.getElementById('main-screen');
+
+    this.initAppWithData = this.initAppWithData.bind(this);
+    this.addCardsData = this.addCardsData.bind(this);
+    this.loadNewCards = this.loadNewCards.bind(this);
+    this.sortCardsData = this.sortCardsData.bind(this);
+    this.filterCardsData = this.filterCardsData.bind(this);
+    this.passData = this.passData.bind(this);
+    this.catchError = this.catchError.bind(this);
+
+    window.addEventListener('scroll', this.loadNewCards);
+
+    this.onSortPanelChange = this.onSortPanelChange.bind(this);
+    this.sortingPanel = new __WEBPACK_IMPORTED_MODULE_2__SortingPanel__["e" /* default */](this.onSortPanelChange);
+
+    this.onFilterPanelChange = this.onFilterPanelChange.bind(this);
+    this.filterPanel = new __WEBPACK_IMPORTED_MODULE_3__FilterPanel__["a" /* default */](
+      this.onFilterPanelChange,
+      this.languages
+    );
+  }
+
+  getLanguages(cardsData) {
+    return cardsData.reduce(
+      (languages, element) => {
+        if (
+          element.language !== null &&
+          !languages.includes(element.language)
+        ) {
+          languages.push(element.language);
+        }
+        return languages;
+      },
+      ['All languages']
+    );
+  }
+
+  saveDatesInDateFormat(data) {
+    data.forEach(element => {
+      element.updated_at = new Date(element.updated_at);
+    });
+  }
+
+  passData(data) {
+    this.isLoading = false;
+    return data;
+  }
+
+  catchError(error) {
+    this.isLoading = false;
+    alert(error.message);
+  }
+
+  getCardsData(owner) {
+    this.isLoading = true;
+    const url = `users/${owner}/repos?page=${Object(__WEBPACK_IMPORTED_MODULE_5__utils__["k" /* getPageNumber */])(
+      this.cardsData.length
+    )}`;
+
+    return Object(__WEBPACK_IMPORTED_MODULE_4__api__["a" /* get */])(url, {
+      Accept: 'application/vnd.github.mercy-preview+json'
+    }).then(this.passData, this.catchError);
+  }
+
+  getNumberOfRepos(owner) {
+    return Object(__WEBPACK_IMPORTED_MODULE_4__api__["a" /* get */])(`users/${owner}`).then(
+      data => data.public_repos,
+      this.catchError
+    );
+  }
+
+  loadNewCards() {
+    if (Object(__WEBPACK_IMPORTED_MODULE_5__utils__["l" /* isScrolledToBottom */])()) {
+      let isAvailbaleRepos = this.cardsData.length < this.reposTotal;
+
+      if (isAvailbaleRepos) {
+        if (!this.isLoading) {
+          this.getCardsData(this.owner).then(data => {
+            this.addCardsData(data);
+            this.cardsList.addCards(this.sortCardsData(this.filterCardsData()));
+          });
+        }
+      } else {
+        window.removeEventListener('scroll', this.loadNewCards);
+      }
+    }
+  }
+
+  onSubmitClick(owner) {
+    this.owner = owner;
+    Promise.all([this.getCardsData(owner), this.getNumberOfRepos(owner)]).then(
+      this.initAppWithData
+    );
+  }
+
+  addCardsData(newCardsData) {
+    this.saveDatesInDateFormat(newCardsData);
+    this.cardsData = this.cardsData.concat(newCardsData);
+  }
+
+  initAppWithData(data) {
+    let [cardsData, reposTotal] = data;
+
+    this.saveDatesInDateFormat(cardsData);
+    this.cardsData = cardsData;
+    this.reposTotal = reposTotal;
+    this.appWasStarted = true;
+    this.cardsList.addCards(this.cardsData);
+    this.languages = this.getLanguages(this.cardsData);
+    this.filterPanel.drawLanguages(this.languages);
+    this.draw();
+  }
+
+  draw() {
+    Object(__WEBPACK_IMPORTED_MODULE_5__utils__["c" /* clean */])(this.mainScreen);
+
+    if (!this.appWasStarted) {
+      this.mainScreen.appendChild(this.firstScreen.domElement);
+    } else {
+      Object(__WEBPACK_IMPORTED_MODULE_5__utils__["a" /* appendChildren */])(this.mainScreen, [
+        this.filterPanel.domElement,
+        this.sortingPanel.domElement,
+        this.cardsList.domElement
+      ]);
+    }
+  }
+
+  onSortPanelChange(sortState) {
+    this.sortState = sortState;
+
+    this.cardsList.addCards(this.sortCardsData(this.filterCardsData()));
+  }
+
+  sortCardsData(data) {
+    let sortedCardsData = data.slice();
+
+    if (__WEBPACK_IMPORTED_MODULE_2__SortingPanel__["b" /* REPO_NAME_SORT */] === this.sortState.button) {
+      sortedCardsData.forEach(card => {
+        card.name = card.name.toLowerCase();
+      });
+    }
+
+    __WEBPACK_IMPORTED_MODULE_5__utils__["b" /* cardSorters */][this.sortState.button](
+      sortedCardsData,
+      sortOrderMap[this.sortState.order]
+    );
+
+    return sortedCardsData;
+  }
+
+  onFilterPanelChange(filterState) {
+    this.filterState = filterState;
+
+    this.cardsList.addCards(this.sortCardsData(this.filterCardsData()));
+  }
+
+  filterCardsData() {
+    let filteredCardsData = this.cardsData;
+
+    if (this.filterState.hasOpenIssues) {
+      filteredCardsData = Object(__WEBPACK_IMPORTED_MODULE_5__utils__["e" /* filterByPresentOpenIssues */])(filteredCardsData);
+    }
+
+    if (this.filterState.hasTopics) {
+      filteredCardsData = Object(__WEBPACK_IMPORTED_MODULE_5__utils__["f" /* filterByPresentTopics */])(filteredCardsData);
+    }
+
+    if (this.filterState.starred > 0) {
+      filteredCardsData = Object(__WEBPACK_IMPORTED_MODULE_5__utils__["g" /* filterByStarred */])(
+        filteredCardsData,
+        this.filterState.starred
+      );
+    }
+
+    if (this.filterState.date) {
+      filteredCardsData = Object(__WEBPACK_IMPORTED_MODULE_5__utils__["h" /* filterByUpdatedAfter */])(
+        filteredCardsData,
+        this.filterState.date
+      );
+    }
+
+    if (this.filterState.type === 'forks') {
+      filteredCardsData = Object(__WEBPACK_IMPORTED_MODULE_5__utils__["i" /* filterForks */])(filteredCardsData);
+    }
+
+    if (this.filterState.type === 'sources') {
+      filteredCardsData = Object(__WEBPACK_IMPORTED_MODULE_5__utils__["j" /* filterSources */])(filteredCardsData);
+    }
+
+    if (this.filterState.language !== 'All languages') {
+      filteredCardsData = Object(__WEBPACK_IMPORTED_MODULE_5__utils__["d" /* filterByLanguage */])(
+        filteredCardsData,
+        this.filterState.language
+      );
+    }
+    this.languages = this.getLanguages(filteredCardsData);
+    this.filterPanel.redrawLanguages(this.languages);
+    return filteredCardsData;
+  }
+}
+/* harmony export (immutable) */ __webpack_exports__["a"] = App;
+
+
+
+/***/ }),
+/* 5 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+const ENTER_KEY = 13;
+
 class FirstScreen {
   constructor(onSubmit) {
     this._firstScreen = document.createElement('div');
@@ -376,13 +570,38 @@ class FirstScreen {
     this._firstScreen.id = 'first-screen-container';
     input.id = 'user-or-org-name-input';
     input.type = 'text';
-    input.placeholder = 'Enter user name here';
+    input.placeholder = 'Enter username';
     submit.id = 'submit-button';
-    submit.innerHTML = 'Submit';
+    submit.innerHTML = 'GET CARDS';
 
-    submit.addEventListener('click', function() {
-      onSubmit(input.value);
+    const handleSubmit = () => {
+      if (input.value.length) {
+        input.removeEventListener('keydown', handleSubmit);
+        input.removeEventListener('focus', removeError);
+        onSubmit(input.value);
+        showLoader();
+      } else {
+        input.classList.add('invalid');
+      }
+    };
+
+    const showLoader = () => {
+      input.setAttribute('disabled', true);
+      submit.setAttribute('disabled', true);
+      submit.innerHTML = 'Loading...';
+    };
+
+    const removeError = () => {
+      input.classList.remove('invalid');
+    };
+
+    submit.addEventListener('click', handleSubmit);
+    input.addEventListener('keydown', event => {
+      if (event.which === ENTER_KEY) {
+        handleSubmit();
+      }
     });
+    input.addEventListener('focus', removeError);
 
     this._firstScreen.appendChild(input);
     this._firstScreen.appendChild(submit);
@@ -397,12 +616,12 @@ class FirstScreen {
 
 
 /***/ }),
-/* 3 */
+/* 6 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ModalWindow__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__app__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ModalWindow__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils__ = __webpack_require__(0);
 
 
 
@@ -446,13 +665,16 @@ class Card {
 
     let nameForkContainer = document.createElement('div');
     nameForkContainer.classList.add('card-name-fork-container');
+    let titleContainer = document.createElement('div');
+    titleContainer.classList.add('title-container');
 
     let repoName = document.createElement('a');
     repoName.innerText = this.repoName;
     repoName.href = this.url;
     repoName.classList.add('card-repo-name');
 
-    nameForkContainer.appendChild(repoName);
+    nameForkContainer.appendChild(titleContainer);
+    titleContainer.appendChild(repoName);
 
     //TODO: Replace with true/false flag
     if (this.isFork) {
@@ -513,7 +735,7 @@ class Card {
   }
 
   createCardDescription() {
-    let description = document.createElement('div');
+    let description = document.createElement('p');
 
     description.innerHTML = this.description;
     description.classList.add('card-description');
@@ -522,7 +744,7 @@ class Card {
   }
 
   createCardLanguage() {
-    let language = document.createElement('div');
+    let language = document.createElement('p');
 
     language.innerHTML = this.language;
     language.classList.add('card-language');
@@ -531,7 +753,7 @@ class Card {
   }
 
   createCardForkedRepo() {
-    let forked = document.createElement('div');
+    let forked = document.createElement('p');
 
     forked.innerHTML = 'This repo is a fork';
     forked.classList.add('card-is-repo-a-fork');
@@ -563,10 +785,9 @@ class CardsList {
   }
 
   addCards(cardsData) {
-    this.cards = cardsData.map(function(data, index) {
-      return new Card(data, index);
-    });
-    Object(__WEBPACK_IMPORTED_MODULE_1__app__["clean"])(this._domElement);
+    this.cards = cardsData.map((data, index) => new Card(data, index));
+    Object(__WEBPACK_IMPORTED_MODULE_1__utils__["c" /* clean */])(this._domElement);
+
     this.draw();
   }
 
@@ -589,9 +810,8 @@ class CardsList {
     let cardsBlockWrapper = document.createElement('div');
     cardsBlockWrapper.classList.add('cards-block-wrapper');
 
-    this.cards.forEach(function(card) {
-      cardsBlockWrapper.appendChild(card.domElement);
-    });
+    Object(__WEBPACK_IMPORTED_MODULE_1__utils__["a" /* appendChildren */])(cardsBlockWrapper, this.cards.map(card => card.domElement));
+
     this._domElement.appendChild(cardsBlockWrapper);
   }
 }
@@ -600,12 +820,12 @@ class CardsList {
 
 
 /***/ }),
-/* 4 */
+/* 7 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__api__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__app__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__api__ = __webpack_require__(2);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils__ = __webpack_require__(0);
 
 
 
@@ -613,7 +833,6 @@ const bytesToKb = bytes => Math.round(bytes / 125);
 
 class ModalWindow {
   constructor(cardData) {
-    // TODO: Look here - named destructuring
     const { owner, repoName, isFork } = cardData;
 
     this.mainScreen = document.getElementById('main-screen');
@@ -637,7 +856,6 @@ class ModalWindow {
     }
 
     Promise.all(requests).then(gitHubData => {
-      // TODO: Look here - array function in callback for avoiding of using .bind(this)
       this.isWithData = true;
       this.initModalWindow(gitHubData, cardData);
     });
@@ -647,25 +865,22 @@ class ModalWindow {
   }
 
   initModalWindow(data, cardData) {
-    // TODO: Look here - destructuring of array and object
     const [contributors, languages, pullRequests, forkedFrom] = data;
     const { repoName, url } = cardData;
 
-    const heading = this.getHeading(repoName, url, forkedFrom);
-    const contributorsContainer = this.getContributorsContainer(contributors);
-    const languagesContainer = this.getLanguagesContainer(languages);
-    const prsContainer = this.getPrsContainer(pullRequests);
+    let children = [
+      this.getHeading(repoName, url, forkedFrom),
+      this.getContributorsContainer(contributors),
+      this.getLanguagesContainer(languages)
+    ];
 
-    Object(__WEBPACK_IMPORTED_MODULE_1__app__["clean"])(this.window);
+    if (pullRequests.length) {
+      children.push(this.getPrsContainer(pullRequests));
+    }
 
-    this.window.appendChild(
-      this.getWindowContent(
-        heading,
-        contributorsContainer,
-        languagesContainer,
-        prsContainer
-      )
-    );
+    Object(__WEBPACK_IMPORTED_MODULE_1__utils__["c" /* clean */])(this.window);
+
+    this.window.appendChild(this.getWindowContent(children));
   }
 
   getHeading(repoName, url, forkedFrom) {
@@ -698,7 +913,7 @@ class ModalWindow {
     contributorsTable.innerHTML =
       '<thead><td>Username</td><td>Contributions</td></thead>';
 
-    contributors.forEach(function(item) {
+    contributors.forEach(item => {
       let tr = document.createElement('tr');
       let tdWithName = document.createElement('td');
       let tdWithContributions = document.createElement('td');
@@ -759,15 +974,16 @@ class ModalWindow {
     prsHeading.classList.add('block-container-heading');
     prsHeading.innerHTML = 'Pull&#160;Requests';
 
-    prs.forEach(function(item) {
-      let li = document.createElement('li');
+    Object(__WEBPACK_IMPORTED_MODULE_1__utils__["a" /* appendChildren */])(
+      prsList,
+      prs.map(item => {
+        let li = document.createElement('li');
+        li.innerHTML = `<a href = '${item.html_url}'>${item.title}</a>`;
+        return li;
+      })
+    );
 
-      li.innerHTML = `<a href = '${item.html_url}'>${item.title}</a>`;
-      prsList.appendChild(li);
-    });
-
-    prsContainer.appendChild(prsHeading);
-    prsContainer.appendChild(prsList);
+    Object(__WEBPACK_IMPORTED_MODULE_1__utils__["a" /* appendChildren */])(prsContainer, [prsHeading, prsList]);
 
     return prsContainer;
   }
@@ -781,37 +997,28 @@ class ModalWindow {
     return okButton;
   }
 
-  getWindowContent(
-    heading,
-    contributorsContainer,
-    languagesContainer,
-    prsContainer
-  ) {
+  getWindowContent([heading, ...rest]) {
     let innerWrapper = document.createElement('div');
     let contentContainer = document.createElement('div');
     let okButton = this.getOkButton();
 
     innerWrapper.id = 'card-details-wrapper';
     contentContainer.id = 'content-container';
-    contentContainer.appendChild(contributorsContainer);
-    contentContainer.appendChild(languagesContainer);
-    contentContainer.appendChild(prsContainer);
-    innerWrapper.appendChild(heading);
-    innerWrapper.appendChild(contentContainer);
-    innerWrapper.appendChild(okButton);
+    Object(__WEBPACK_IMPORTED_MODULE_1__utils__["a" /* appendChildren */])(contentContainer, rest);
+    Object(__WEBPACK_IMPORTED_MODULE_1__utils__["a" /* appendChildren */])(innerWrapper, [heading, contentContainer, okButton]);
 
     return innerWrapper;
   }
 
   getForkedFrom(owner, repoName) {
-    return Object(__WEBPACK_IMPORTED_MODULE_0__api__["a" /* get */])(`repos/${owner.login}/${repoName}`).then(function(data) {
-      return data.parent.full_name;
-    });
+    return Object(__WEBPACK_IMPORTED_MODULE_0__api__["a" /* get */])(`repos/${owner.login}/${repoName}`).then(
+      data => data.parent.full_name
+    );
   }
 
   getContributors(owner, repoName) {
     return Object(__WEBPACK_IMPORTED_MODULE_0__api__["a" /* get */])(`repos/${owner.login}/${repoName}/contributors`).then(
-      function(data) {
+      data => {
         let contributors = data.map(({ login, html_url, contributions }) => ({
           login,
           html_url,
@@ -819,7 +1026,7 @@ class ModalWindow {
         }));
         return contributors.splice(0, 3);
       },
-      function(error) {
+      error => {
         alert(error.message);
       }
     );
@@ -827,7 +1034,7 @@ class ModalWindow {
 
   getLanguages(owner, repoName) {
     return Object(__WEBPACK_IMPORTED_MODULE_0__api__["a" /* get */])(`repos/${owner.login}/${repoName}/languages`).then(
-      function(languages) {
+      languages => {
         return Object.keys(languages).reduce((acc, title) => {
           const langSize = bytesToKb(languages[title]);
 
@@ -838,7 +1045,7 @@ class ModalWindow {
           return acc;
         }, {});
       },
-      function(error) {
+      error => {
         alert(error.message);
       }
     );
@@ -846,14 +1053,14 @@ class ModalWindow {
 
   getPullRequests(owner, repoName) {
     return Object(__WEBPACK_IMPORTED_MODULE_0__api__["a" /* get */])(`repos/${owner.login}/${repoName}/pulls?sort=popularity`).then(
-      function(data) {
+      data => {
         let prs = data.map(({ title, html_url }) => ({
           title,
           html_url
         }));
         return prs.splice(0, 5);
       },
-      function(error) {
+      error => {
         alert(error.message);
       }
     );
@@ -876,90 +1083,13 @@ class ModalWindow {
 
 
 /***/ }),
-/* 5 */
+/* 8 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-class SortingPanel {
-  constructor(onChange) {
-    this._sortingPanel = document.createElement('div');
-
-    let repoNameButton = this.getButton('repo-name-sort', 'Sort by repo name');
-    let starsCountButton = this.getButton(
-      'stars-count-sort',
-      'Sort by stars count'
-    );
-    let openIssuesCountButton = this.getButton(
-      'open-issues-sort',
-      'Sort by open issues count'
-    );
-    let updatedDateButton = this.getButton(
-      'update-date-sort',
-      'Sort by updated date'
-    );
-
-    const buttons = [
-      repoNameButton,
-      starsCountButton,
-      openIssuesCountButton,
-      updatedDateButton
-    ];
-
-    this._sortingPanel.id = 'sorting-panel';
-    this._sortingPanel.appendChild(repoNameButton);
-    this._sortingPanel.appendChild(starsCountButton);
-    this._sortingPanel.appendChild(openIssuesCountButton);
-    this._sortingPanel.appendChild(updatedDateButton);
-    this._sortingPanel.addEventListener('click', event => {
-      let target = event.target.closest('.sort');
-      if (target) {
-        onChange({
-          button: target.id,
-          order: target.getAttribute('data-order')
-        });
-        buttons.forEach(function(button) {
-          button.childNodes[1].setAttribute('click-status', 'free');
-        });
-        target.childNodes[1].setAttribute('click-status', 'clicked');
-        // Add hiding the arrow to styles
-        if (target.getAttribute('data-order') === 'descending') {
-          target.setAttribute('data-order', 'ascending');
-          target.childNodes[1].innerHTML = '&#8593;';
-        } else {
-          target.setAttribute('data-order', 'descending');
-          target.childNodes[1].innerHTML = '&#8595;';
-        }
-      }
-    });
-  }
-
-  getButton(id, innerHTML) {
-    let button = document.createElement('button');
-
-    button.id = id;
-    button.innerHTML = innerHTML;
-    button.classList.add('sort');
-    button.setAttribute('data-order', 'ascending');
-
-    let arrow = document.createElement('span');
-
-    button.appendChild(arrow);
-    return button;
-  }
-
-  get domElement() {
-    return this._sortingPanel;
-  }
-}
-/* harmony export (immutable) */ __webpack_exports__["a"] = SortingPanel;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__utils__ = __webpack_require__(0);
 
 
-
-/***/ }),
-/* 6 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
 class FilterPanel {
   constructor(onChange, languages) {
     this._filterPanel = document.createElement('div');
@@ -986,13 +1116,16 @@ class FilterPanel {
     this._filterPanel.id = 'filter-panel';
     hasOpenIssuesLabel.innerHTML = 'Has open issues';
     hasOpenIssuesCheckbox.type = 'checkbox';
-    hasOpenIssuesContainer.appendChild(hasOpenIssuesLabel);
-    hasOpenIssuesContainer.appendChild(hasOpenIssuesCheckbox);
+    Object(__WEBPACK_IMPORTED_MODULE_0__utils__["a" /* appendChildren */])(hasOpenIssuesContainer, [
+      hasOpenIssuesLabel,
+      hasOpenIssuesCheckbox
+    ]);
     topicsLabel.innerHTML = 'Has topics';
     topicsCheckbox.type = 'checkbox';
     topicsContainer.appendChild(topicsLabel);
     topicsContainer.appendChild(topicsCheckbox);
     starLabel.innerHTML = 'Starred';
+    starInput.id = 'star-input';
     starInput.type = 'number';
     starInput.value = '0';
     starInput.min = '0';
@@ -1008,6 +1141,7 @@ class FilterPanel {
     option3.innerHTML = 'sources';
     this.drawLanguages(languages);
     applyButton.innerHTML = 'Apply filters';
+    applyButton.classList.add('apply-filter-button');
 
     applyButton.addEventListener('click', () => {
       let filterStates = {};
@@ -1029,16 +1163,17 @@ class FilterPanel {
       onChange(filterStates);
     });
 
-    typeDropdown.appendChild(option1);
-    typeDropdown.appendChild(option2);
-    typeDropdown.appendChild(option3);
-    this._filterPanel.appendChild(hasOpenIssuesContainer);
-    this._filterPanel.appendChild(topicsContainer);
-    this._filterPanel.appendChild(starContainer);
-    this._filterPanel.appendChild(calendarContainer);
-    this._filterPanel.appendChild(typeDropdown);
-    this._filterPanel.appendChild(this._languageDropdown);
-    this._filterPanel.appendChild(applyButton);
+    Object(__WEBPACK_IMPORTED_MODULE_0__utils__["a" /* appendChildren */])(typeDropdown, [option1, option2, option3]);
+
+    Object(__WEBPACK_IMPORTED_MODULE_0__utils__["a" /* appendChildren */])(this._filterPanel, [
+      hasOpenIssuesContainer,
+      topicsContainer,
+      starContainer,
+      calendarContainer,
+      typeDropdown,
+      this._languageDropdown,
+      applyButton
+    ]);
 
     this.drawLanguages = this.drawLanguages.bind(this);
   }
@@ -1048,9 +1183,8 @@ class FilterPanel {
   }
 
   drawLanguages(languages) {
-    while (this._languageDropdown.firstChild) {
-      this._languageDropdown.removeChild(this._languageDropdown.firstChild);
-    }
+    Object(__WEBPACK_IMPORTED_MODULE_0__utils__["c" /* clean */])(this._languageDropdown);
+
     languages.forEach(element => {
       let option = document.createElement('option');
       option.innerHTML = element;
@@ -1058,132 +1192,20 @@ class FilterPanel {
     });
   }
 
-  redrawLanguages(languages) {
-    let value = this._languageDropdown.options[
+  redrawLanguages(nextLanguages) {
+    let selected = this._languageDropdown.options[
       this._languageDropdown.selectedIndex
     ].innerHTML;
 
-    this.drawLanguages(languages);
-    if (this.findSelectedValue(value) !== -1) {
-      this._languageDropdown.selectedIndex = this.findSelectedValue(value);
-    } else {
-      this._languageDropdown.selectedIndex = 0;
-    }
-  }
+    this.drawLanguages(nextLanguages);
 
-  findSelectedValue(value) {
-    for (let i = 0; i < this._languageDropdown.length; i++) {
-      if (this._languageDropdown.options[i].innerHTML === value) {
-        return i;
-      }
-    }
-    return -1;
+    this._languageDropdown.selectedIndex = ~nextLanguages.indexOf(selected)
+      ? nextLanguages.indexOf(selected)
+      : 0;
   }
 }
 /* harmony export (immutable) */ __webpack_exports__["a"] = FilterPanel;
 
-
-
-/***/ }),
-/* 7 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony export (immutable) */ __webpack_exports__["h"] = getPageNumber;
-/* harmony export (immutable) */ __webpack_exports__["i"] = isScrolledToBottom;
-/* harmony export (immutable) */ __webpack_exports__["k"] = sortByRepoName;
-/* harmony export (immutable) */ __webpack_exports__["l"] = sortByStarsCount;
-/* harmony export (immutable) */ __webpack_exports__["j"] = sortByOpenIssuesCount;
-/* harmony export (immutable) */ __webpack_exports__["m"] = sortByUpdatedDate;
-/* harmony export (immutable) */ __webpack_exports__["b"] = filterByPresentOpenIssues;
-/* harmony export (immutable) */ __webpack_exports__["c"] = filterByPresentTopics;
-/* harmony export (immutable) */ __webpack_exports__["d"] = filterByStarred;
-/* harmony export (immutable) */ __webpack_exports__["e"] = filterByUpdatedAfter;
-/* harmony export (immutable) */ __webpack_exports__["f"] = filterForks;
-/* harmony export (immutable) */ __webpack_exports__["g"] = filterSources;
-/* harmony export (immutable) */ __webpack_exports__["a"] = filterByLanguage;
-function getPageNumber(reposAmount) {
-  const MAX_REPOS_ON_PAGE = 30;
-
-  return reposAmount / MAX_REPOS_ON_PAGE + 1;
-}
-
-function isScrolledToBottom() {
-  return (
-    window.innerHeight + document.body.scrollTop + 1 >=
-    document.body.scrollHeight
-  );
-}
-
-function sortByRepoName(arr, order) {
-  arr.sort(function(a, b) {
-    if (a.name.toLowerCase() > b.name.toLowerCase()) return order;
-    if (a.name.toLowerCase() < b.name.toLowerCase()) return -order;
-  });
-}
-
-function sortByStarsCount(arr, order) {
-  arr.sort(function(a, b) {
-    if (a.stargazers_count > b.stargazers_count) return order;
-    if (a.stargazers_count < b.stargazers_count) return -order;
-  });
-}
-
-function sortByOpenIssuesCount(arr, order) {
-  arr.sort(function(a, b) {
-    if (a.open_issues_count > b.open_issues_count) return order;
-    if (a.open_issues_count < b.open_issues_count) return -order;
-  });
-}
-
-function sortByUpdatedDate(arr, order) {
-  arr.sort(function(a, b) {
-    if (a.updated_at > b.updated_at) return order;
-    if (a.updated_at < b.updated_at) return -order;
-  });
-}
-
-function filterByPresentOpenIssues(arr) {
-  return arr.filter(function(element) {
-    return element.open_issues_count > 0;
-  });
-}
-
-function filterByPresentTopics(arr) {
-  return arr.filter(function(element) {
-    return Array.isArray(element.topics) && element.topics.length;
-  });
-}
-
-function filterByStarred(arr, times) {
-  return arr.filter(function(element) {
-    return element.stargazers_count >= times;
-  });
-}
-
-function filterByUpdatedAfter(arr, date) {
-  return arr.filter(function(element) {
-    return element.updated_at - date > 0;
-  });
-}
-
-function filterForks(arr) {
-  return arr.filter(function(element) {
-    return element.fork === true;
-  });
-}
-
-function filterSources(arr) {
-  return arr.filter(function(element) {
-    return element.fork === false;
-  });
-}
-
-function filterByLanguage(arr, language) {
-  return arr.filter(function(element) {
-    return element.language == language;
-  });
-}
 
 
 /***/ })
