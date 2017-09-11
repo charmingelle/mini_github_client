@@ -1,18 +1,25 @@
+import { appendChildren } from '../utils';
+
+export const REPO_NAME_SORT = 'repo-name-sort';
+export const STARS_COUNT_SORT = 'stars-count-sort';
+export const OPEN_ISSUES_SORT = 'open-issues-sort';
+export const UPDATE_DATE_SORT = 'update-date-sort';
+
 export default class SortingPanel {
   constructor(onChange) {
     this._sortingPanel = document.createElement('div');
 
-    let repoNameButton = this.getButton('repo-name-sort', 'Sort by repo name');
-    let starsCountButton = this.getButton(
-      'stars-count-sort',
+    let repoNameButton = this.createButton(REPO_NAME_SORT, 'Sort by repo name');
+    let starsCountButton = this.createButton(
+      STARS_COUNT_SORT,
       'Sort by stars count'
     );
-    let openIssuesCountButton = this.getButton(
-      'open-issues-sort',
+    let openIssuesCountButton = this.createButton(
+      OPEN_ISSUES_SORT,
       'Sort by open issues count'
     );
-    let updatedDateButton = this.getButton(
-      'update-date-sort',
+    let updatedDateButton = this.createButton(
+      UPDATE_DATE_SORT,
       'Sort by updated date'
     );
 
@@ -24,22 +31,20 @@ export default class SortingPanel {
     ];
 
     this._sortingPanel.id = 'sorting-panel';
-    this._sortingPanel.appendChild(repoNameButton);
-    this._sortingPanel.appendChild(starsCountButton);
-    this._sortingPanel.appendChild(openIssuesCountButton);
-    this._sortingPanel.appendChild(updatedDateButton);
+    appendChildren(this._sortingPanel, buttons);
+
     this._sortingPanel.addEventListener('click', event => {
-      let target = event.target.closest('.sort');
+      const target = event.target.closest('.sort');
+
       if (target) {
         onChange({
           button: target.id,
           order: target.getAttribute('data-order')
         });
-        buttons.forEach(function(button) {
-          button.childNodes[1].setAttribute('click-status', 'free');
-        });
-        target.childNodes[1].setAttribute('click-status', 'clicked');
-        // Add hiding the arrow to styles
+
+        buttons.forEach(button => button.classList.remove('clicked'));
+        target.classList.add('clicked');
+
         if (target.getAttribute('data-order') === 'descending') {
           target.setAttribute('data-order', 'ascending');
           target.childNodes[1].innerHTML = '&#8593;';
@@ -51,17 +56,22 @@ export default class SortingPanel {
     });
   }
 
-  getButton(id, innerHTML) {
+  createButton(id, title) {
     let button = document.createElement('button');
-
     button.id = id;
-    button.innerHTML = innerHTML;
     button.classList.add('sort');
     button.setAttribute('data-order', 'ascending');
 
-    let arrow = document.createElement('span');
+    let buttonTitle = document.createElement('span');
+    buttonTitle.textContent = title;
+    buttonTitle.classList.add('button-title');
 
+    let arrow = document.createElement('span');
+    arrow.classList.add('sort-order-arrow');
+
+    button.appendChild(buttonTitle);
     button.appendChild(arrow);
+
     return button;
   }
 
