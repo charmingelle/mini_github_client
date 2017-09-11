@@ -1,11 +1,10 @@
 import { get } from '../api';
-import { clean } from '../app';
+import { clean, appendChildren } from '../utils';
 
 const bytesToKb = bytes => Math.round(bytes / 125);
 
 export default class ModalWindow {
   constructor(cardData) {
-    // TODO: Look here - named destructuring
     const { owner, repoName, isFork } = cardData;
 
     this.mainScreen = document.getElementById('main-screen');
@@ -29,7 +28,6 @@ export default class ModalWindow {
     }
 
     Promise.all(requests).then(gitHubData => {
-      // TODO: Look here - array function in callback for avoiding of using .bind(this)
       this.isWithData = true;
       this.initModalWindow(gitHubData, cardData);
     });
@@ -39,25 +37,22 @@ export default class ModalWindow {
   }
 
   initModalWindow(data, cardData) {
-    // TODO: Look here - destructuring of array and object
     const [contributors, languages, pullRequests, forkedFrom] = data;
     const { repoName, url } = cardData;
 
-    const heading = this.getHeading(repoName, url, forkedFrom);
-    const contributorsContainer = this.getContributorsContainer(contributors);
-    const languagesContainer = this.getLanguagesContainer(languages);
-    const prsContainer = this.getPrsContainer(pullRequests);
+    let children = [
+      this.getHeading(repoName, url, forkedFrom),
+      this.getContributorsContainer(contributors),
+      this.getLanguagesContainer(languages)
+    ];
+
+    if (pullRequests.length) {
+      children.push(this.getPrsContainer(pullRequests));
+    }
 
     clean(this.window);
 
-    this.window.appendChild(
-      this.getWindowContent(
-        heading,
-        contributorsContainer,
-        languagesContainer,
-        prsContainer
-      )
-    );
+    this.window.appendChild(this.getWindowContent(children));
   }
 
   getHeading(repoName, url, forkedFrom) {
@@ -90,7 +85,7 @@ export default class ModalWindow {
     contributorsTable.innerHTML =
       '<thead><td>Username</td><td>Contributions</td></thead>';
 
-    contributors.forEach(function(item) {
+    contributors.forEach(item => {
       let tr = document.createElement('tr');
       let tdWithName = document.createElement('td');
       let tdWithContributions = document.createElement('td');
@@ -151,15 +146,16 @@ export default class ModalWindow {
     prsHeading.classList.add('block-container-heading');
     prsHeading.innerHTML = 'Pull&#160;Requests';
 
-    prs.forEach(function(item) {
-      let li = document.createElement('li');
+    appendChildren(
+      prsList,
+      prs.map(item => {
+        let li = document.createElement('li');
+        li.innerHTML = `<a href = '${item.html_url}'>${item.title}</a>`;
+        return li;
+      })
+    );
 
-      li.innerHTML = `<a href = '${item.html_url}'>${item.title}</a>`;
-      prsList.appendChild(li);
-    });
-
-    prsContainer.appendChild(prsHeading);
-    prsContainer.appendChild(prsList);
+    appendChildren(prsContainer, [prsHeading, prsList]);
 
     return prsContainer;
   }
@@ -173,37 +169,28 @@ export default class ModalWindow {
     return okButton;
   }
 
-  getWindowContent(
-    heading,
-    contributorsContainer,
-    languagesContainer,
-    prsContainer
-  ) {
+  getWindowContent([heading, ...rest]) {
     let innerWrapper = document.createElement('div');
     let contentContainer = document.createElement('div');
     let okButton = this.getOkButton();
 
     innerWrapper.id = 'card-details-wrapper';
     contentContainer.id = 'content-container';
-    contentContainer.appendChild(contributorsContainer);
-    contentContainer.appendChild(languagesContainer);
-    contentContainer.appendChild(prsContainer);
-    innerWrapper.appendChild(heading);
-    innerWrapper.appendChild(contentContainer);
-    innerWrapper.appendChild(okButton);
+    appendChildren(contentContainer, rest);
+    appendChildren(innerWrapper, [heading, contentContainer, okButton]);
 
     return innerWrapper;
   }
 
   getForkedFrom(owner, repoName) {
-    return get(`repos/${owner.login}/${repoName}`).then(function(data) {
-      return data.parent.full_name;
-    });
+    return get(`repos/${owner.login}/${repoName}`).then(
+      data => data.parent.full_name
+    );
   }
 
   getContributors(owner, repoName) {
     return get(`repos/${owner.login}/${repoName}/contributors`).then(
-      function(data) {
+      data => {
         let contributors = data.map(({ login, html_url, contributions }) => ({
           login,
           html_url,
@@ -211,7 +198,7 @@ export default class ModalWindow {
         }));
         return contributors.splice(0, 3);
       },
-      function(error) {
+      error => {
         alert(error.message);
       }
     );
@@ -219,7 +206,7 @@ export default class ModalWindow {
 
   getLanguages(owner, repoName) {
     return get(`repos/${owner.login}/${repoName}/languages`).then(
-      function(languages) {
+      languages => {
         return Object.keys(languages).reduce((acc, title) => {
           const langSize = bytesToKb(languages[title]);
 
@@ -230,7 +217,7 @@ export default class ModalWindow {
           return acc;
         }, {});
       },
-      function(error) {
+      error => {
         alert(error.message);
       }
     );
@@ -238,14 +225,14 @@ export default class ModalWindow {
 
   getPullRequests(owner, repoName) {
     return get(`repos/${owner.login}/${repoName}/pulls?sort=popularity`).then(
-      function(data) {
+      data => {
         let prs = data.map(({ title, html_url }) => ({
           title,
           html_url
         }));
         return prs.splice(0, 5);
       },
-      function(error) {
+      error => {
         alert(error.message);
       }
     );
