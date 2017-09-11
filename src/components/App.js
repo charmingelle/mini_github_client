@@ -1,44 +1,32 @@
-import FirstScreen from './views/FirstScreen';
-import CardsList from './views/CardsList';
-import SortingPanel from './views/SortingPanel';
-import FilterPanel from './views/FilterPanel';
+import FirstScreen from './FirstScreen';
+import CardsList from './CardsList';
+import SortingPanel from './SortingPanel';
+import FilterPanel from './FilterPanel';
 
-import { get } from './api.js';
+import { get } from '../api';
 import {
   getPageNumber,
   isScrolledToBottom,
-  sortByRepoName,
-  sortByStarsCount,
-  sortByOpenIssuesCount,
-  sortByUpdatedDate,
+  cardSorters,
   filterByPresentOpenIssues,
   filterByPresentTopics,
   filterByStarred,
   filterByUpdatedAfter,
   filterForks,
   filterSources,
-  filterByLanguage
-} from './utils';
+  filterByLanguage,
+  clean,
+  appendChildren
+} from '../utils';
 
-export function clean(domElement) {
-  while (domElement.firstChild) {
-    domElement.removeChild(domElement.firstChild);
-  }
-}
+import { REPO_NAME_SORT } from './SortingPanel';
 
-const sortOrderCorrespondence = {
+const sortOrderMap = {
   ascending: 1,
   descending: -1
 };
 
-const buttonHandlerCorrespondence = {
-  'repo-name-sort': sortByRepoName,
-  'stars-count-sort': sortByStarsCount,
-  'open-issues-sort': sortByOpenIssuesCount,
-  'update-date-sort': sortByUpdatedDate
-};
-
-class App {
+export default class App {
   constructor() {
     this.appWasStarted = false;
     this.owner = '';
@@ -65,7 +53,6 @@ class App {
     this.mainScreen = document.getElementById('main-screen');
 
     this.initAppWithData = this.initAppWithData.bind(this);
-    // this.returnLoadedData = this.returnLoadedData.bind(this);
     this.addCardsData = this.addCardsData.bind(this);
     this.loadNewCards = this.loadNewCards.bind(this);
     this.sortCardsData = this.sortCardsData.bind(this);
@@ -87,7 +74,7 @@ class App {
 
   getLanguages(cardsData) {
     return cardsData.reduce(
-      function(languages, element) {
+      (languages, element) => {
         if (
           element.language !== null &&
           !languages.includes(element.language)
@@ -101,7 +88,7 @@ class App {
   }
 
   saveDatesInDateFormat(data) {
-    data.forEach(function(element) {
+    data.forEach(element => {
       element.updated_at = new Date(element.updated_at);
     });
   }
@@ -128,14 +115,10 @@ class App {
   }
 
   getNumberOfRepos(owner) {
-    return get(`users/${owner}`).then(function(data) {
-      return data.public_repos;
-    }, this.catchError);
-  }
-
-  drawLoader() {
-    clean(this.mainScreen);
-    this.mainScreen.innerText = 'Loading...';
+    return get(`users/${owner}`).then(
+      data => data.public_repos,
+      this.catchError
+    );
   }
 
   loadNewCards() {
@@ -156,7 +139,6 @@ class App {
   }
 
   onSubmitClick(owner) {
-    this.drawLoader();
     this.owner = owner;
     Promise.all([this.getCardsData(owner), this.getNumberOfRepos(owner)]).then(
       this.initAppWithData
@@ -187,9 +169,11 @@ class App {
     if (!this.appWasStarted) {
       this.mainScreen.appendChild(this.firstScreen.domElement);
     } else {
-      this.mainScreen.appendChild(this.filterPanel.domElement);
-      this.mainScreen.appendChild(this.sortingPanel.domElement);
-      this.mainScreen.appendChild(this.cardsList.domElement);
+      appendChildren(this.mainScreen, [
+        this.filterPanel.domElement,
+        this.sortingPanel.domElement,
+        this.cardsList.domElement
+      ]);
     }
   }
 
@@ -200,12 +184,19 @@ class App {
   }
 
   sortCardsData(data) {
-    let sortedCardsData = data.slice(); // Copied the array
+    let sortedCardsData = data.slice();
 
-    buttonHandlerCorrespondence[this.sortState.button](
+    if (REPO_NAME_SORT === this.sortState.button) {
+      sortedCardsData.forEach(card => {
+        card.name = card.name.toLowerCase();
+      });
+    }
+
+    cardSorters[this.sortState.button](
       sortedCardsData,
-      sortOrderCorrespondence[this.sortState.order]
+      sortOrderMap[this.sortState.order]
     );
+
     return sortedCardsData;
   }
 
@@ -259,6 +250,3 @@ class App {
     return filteredCardsData;
   }
 }
-
-const app = new App();
-app.draw();
