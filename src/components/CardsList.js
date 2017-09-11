@@ -1,6 +1,6 @@
 import ModalWindow from './ModalWindow';
 
-import { clean } from '../app';
+import { clean, appendChildren } from '../utils';
 
 const monthNamesShort = [
   'Jan',
@@ -41,13 +41,16 @@ class Card {
 
     let nameForkContainer = document.createElement('div');
     nameForkContainer.classList.add('card-name-fork-container');
+    let titleContainer = document.createElement('div');
+    titleContainer.classList.add('title-container');
 
     let repoName = document.createElement('a');
     repoName.innerText = this.repoName;
     repoName.href = this.url;
     repoName.classList.add('card-repo-name');
 
-    nameForkContainer.appendChild(repoName);
+    nameForkContainer.appendChild(titleContainer);
+    titleContainer.appendChild(repoName);
 
     //TODO: Replace with true/false flag
     if (this.isFork) {
@@ -108,7 +111,7 @@ class Card {
   }
 
   createCardDescription() {
-    let description = document.createElement('div');
+    let description = document.createElement('p');
 
     description.innerHTML = this.description;
     description.classList.add('card-description');
@@ -117,7 +120,7 @@ class Card {
   }
 
   createCardLanguage() {
-    let language = document.createElement('div');
+    let language = document.createElement('p');
 
     language.innerHTML = this.language;
     language.classList.add('card-language');
@@ -126,7 +129,7 @@ class Card {
   }
 
   createCardForkedRepo() {
-    let forked = document.createElement('div');
+    let forked = document.createElement('p');
 
     forked.innerHTML = 'This repo is a fork';
     forked.classList.add('card-is-repo-a-fork');
@@ -158,10 +161,9 @@ export default class CardsList {
   }
 
   addCards(cardsData) {
-    this.cards = cardsData.map(function(data, index) {
-      return new Card(data, index);
-    });
+    this.cards = cardsData.map((data, index) => new Card(data, index));
     clean(this._domElement);
+
     this.draw();
   }
 
@@ -184,9 +186,8 @@ export default class CardsList {
     let cardsBlockWrapper = document.createElement('div');
     cardsBlockWrapper.classList.add('cards-block-wrapper');
 
-    this.cards.forEach(function(card) {
-      cardsBlockWrapper.appendChild(card.domElement);
-    });
+    appendChildren(cardsBlockWrapper, this.cards.map(card => card.domElement));
+
     this._domElement.appendChild(cardsBlockWrapper);
   }
 }
