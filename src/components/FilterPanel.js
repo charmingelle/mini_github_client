@@ -1,3 +1,5 @@
+import { clean, appendChildren } from '../utils';
+
 export default class FilterPanel {
   constructor(onChange, languages) {
     this._filterPanel = document.createElement('div');
@@ -24,13 +26,16 @@ export default class FilterPanel {
     this._filterPanel.id = 'filter-panel';
     hasOpenIssuesLabel.innerHTML = 'Has open issues';
     hasOpenIssuesCheckbox.type = 'checkbox';
-    hasOpenIssuesContainer.appendChild(hasOpenIssuesLabel);
-    hasOpenIssuesContainer.appendChild(hasOpenIssuesCheckbox);
+    appendChildren(hasOpenIssuesContainer, [
+      hasOpenIssuesLabel,
+      hasOpenIssuesCheckbox
+    ]);
     topicsLabel.innerHTML = 'Has topics';
     topicsCheckbox.type = 'checkbox';
     topicsContainer.appendChild(topicsLabel);
     topicsContainer.appendChild(topicsCheckbox);
     starLabel.innerHTML = 'Starred';
+    starInput.id = 'star-input';
     starInput.type = 'number';
     starInput.value = '0';
     starInput.min = '0';
@@ -46,6 +51,7 @@ export default class FilterPanel {
     option3.innerHTML = 'sources';
     this.drawLanguages(languages);
     applyButton.innerHTML = 'Apply filters';
+    applyButton.classList.add('apply-filter-button');
 
     applyButton.addEventListener('click', () => {
       let filterStates = {};
@@ -67,16 +73,17 @@ export default class FilterPanel {
       onChange(filterStates);
     });
 
-    typeDropdown.appendChild(option1);
-    typeDropdown.appendChild(option2);
-    typeDropdown.appendChild(option3);
-    this._filterPanel.appendChild(hasOpenIssuesContainer);
-    this._filterPanel.appendChild(topicsContainer);
-    this._filterPanel.appendChild(starContainer);
-    this._filterPanel.appendChild(calendarContainer);
-    this._filterPanel.appendChild(typeDropdown);
-    this._filterPanel.appendChild(this._languageDropdown);
-    this._filterPanel.appendChild(applyButton);
+    appendChildren(typeDropdown, [option1, option2, option3]);
+
+    appendChildren(this._filterPanel, [
+      hasOpenIssuesContainer,
+      topicsContainer,
+      starContainer,
+      calendarContainer,
+      typeDropdown,
+      this._languageDropdown,
+      applyButton
+    ]);
 
     this.drawLanguages = this.drawLanguages.bind(this);
   }
@@ -86,9 +93,8 @@ export default class FilterPanel {
   }
 
   drawLanguages(languages) {
-    while (this._languageDropdown.firstChild) {
-      this._languageDropdown.removeChild(this._languageDropdown.firstChild);
-    }
+    clean(this._languageDropdown);
+
     languages.forEach(element => {
       let option = document.createElement('option');
       option.innerHTML = element;
@@ -96,25 +102,15 @@ export default class FilterPanel {
     });
   }
 
-  redrawLanguages(languages) {
-    let value = this._languageDropdown.options[
+  redrawLanguages(nextLanguages) {
+    let selected = this._languageDropdown.options[
       this._languageDropdown.selectedIndex
     ].innerHTML;
 
-    this.drawLanguages(languages);
-    if (this.findSelectedValue(value) !== -1) {
-      this._languageDropdown.selectedIndex = this.findSelectedValue(value);
-    } else {
-      this._languageDropdown.selectedIndex = 0;
-    }
-  }
+    this.drawLanguages(nextLanguages);
 
-  findSelectedValue(value) {
-    for (let i = 0; i < this._languageDropdown.length; i++) {
-      if (this._languageDropdown.options[i].innerHTML === value) {
-        return i;
-      }
-    }
-    return -1;
+    this._languageDropdown.selectedIndex = ~nextLanguages.indexOf(selected)
+      ? nextLanguages.indexOf(selected)
+      : 0;
   }
 }
