@@ -33,6 +33,8 @@ export default class SortingPanel {
     this._sortingPanel.id = 'sorting-panel';
     appendChildren(this._sortingPanel, buttons);
 
+    /* The sorting function (called in App class) is defined by id of the
+    clicked sort button and the sort order changed every time the button is clicked */
     this._sortingPanel.addEventListener('click', event => {
       const target = event.target.closest('.sort');
 

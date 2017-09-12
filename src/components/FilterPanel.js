@@ -102,6 +102,9 @@ export default class FilterPanel {
     });
   }
 
+  /* Every time the cards are filtered, I have to redraw the language dropdown. 
+  The language selected in it before redrawing should stay selected 
+  except the case when the filter result becomes empty */
   redrawLanguages(nextLanguages) {
     let selected = this._languageDropdown.options[
       this._languageDropdown.selectedIndex

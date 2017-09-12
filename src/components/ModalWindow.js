@@ -27,6 +27,8 @@ export default class ModalWindow {
       requests.push(this.getForkedFrom(owner, repoName));
     }
 
+    /* Only when all the data is collected from the server,
+    we are ready to create the window DOM element */
     Promise.all(requests).then(gitHubData => {
       this.isWithData = true;
       this.initModalWindow(gitHubData, cardData);
@@ -46,6 +48,8 @@ export default class ModalWindow {
       this.getLanguagesContainer(languages)
     ];
 
+    /* There are repositories with no pull requests. If this is the case,
+    there is no need to draw the container */
     if (pullRequests.length) {
       children.push(this.getPrsContainer(pullRequests));
     }

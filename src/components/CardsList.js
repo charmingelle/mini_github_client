@@ -2,6 +2,8 @@ import ModalWindow from './ModalWindow';
 
 import { clean, appendChildren } from '../utils';
 
+const MILLISECONDS_IN_DAY = 86400000;
+
 const monthNamesShort = [
   'Jan',
   'Feb',
@@ -52,7 +54,6 @@ class Card {
     nameForkContainer.appendChild(titleContainer);
     titleContainer.appendChild(repoName);
 
-    //TODO: Replace with true/false flag
     if (this.isFork) {
       nameForkContainer.appendChild(this.createCardForkedRepo());
     }
@@ -86,7 +87,7 @@ class Card {
     let cardUpdatedDate = document.createElement('div');
 
     let curDate = new Date();
-    let dayDiff = Math.floor((curDate - this.date) / 86400000);
+    let dayDiff = Math.floor((curDate - this.date) / MILLISECONDS_IN_DAY);
 
     if (dayDiff === 0) {
       date = 'Updated today';
@@ -106,7 +107,6 @@ class Card {
 
     cardUpdatedDate.innerText = date;
     cardUpdatedDate.classList.add('card-update-date');
-
     return cardUpdatedDate;
   }
 
@@ -115,7 +115,6 @@ class Card {
 
     description.innerHTML = this.description;
     description.classList.add('card-description');
-
     return description;
   }
 
@@ -124,7 +123,6 @@ class Card {
 
     language.innerHTML = this.language;
     language.classList.add('card-language');
-
     return language;
   }
 
@@ -133,7 +131,6 @@ class Card {
 
     forked.innerHTML = 'This repo is a fork';
     forked.classList.add('card-is-repo-a-fork');
-
     return forked;
   }
 
@@ -142,7 +139,6 @@ class Card {
 
     counter.innerHTML = `&#9733; ${this.starsCount}`;
     counter.classList.add('card-stars-count');
-
     return counter;
   }
 }
@@ -160,10 +156,11 @@ export default class CardsList {
     return this._domElement;
   }
 
+  /* This function renews the array of card objects and 
+  recreates needed DOM elements at once */
   addCards(cardsData) {
     this.cards = cardsData.map((data, index) => new Card(data, index));
     clean(this._domElement);
-
     this.draw();
   }
 
@@ -182,12 +179,13 @@ export default class CardsList {
     return cardContainer;
   }
 
+  /* In order not to draw each card DOM element on the page separately, 
+  I gather them in a container at first */
   draw() {
     let cardsBlockWrapper = document.createElement('div');
     cardsBlockWrapper.classList.add('cards-block-wrapper');
 
     appendChildren(cardsBlockWrapper, this.cards.map(card => card.domElement));
-
     this._domElement.appendChild(cardsBlockWrapper);
   }
 }

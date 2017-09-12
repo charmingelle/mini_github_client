@@ -72,6 +72,9 @@ export default class App {
     );
   }
 
+  /* This function is for getting the list of languages 
+  of Filter panel language dropdown for it to stay synced with 
+  cards displayed on the page at the moment */
   getLanguages(cardsData) {
     return cardsData.reduce(
       (languages, element) => {
@@ -186,17 +189,17 @@ export default class App {
   sortCardsData(data) {
     let sortedCardsData = data.slice();
 
+    /* Github sorting by name is case insensitive. To implement the same
+    behavior, I have to make all repository names lowercase before sorting */
     if (REPO_NAME_SORT === this.sortState.button) {
       sortedCardsData.forEach(card => {
         card.name = card.name.toLowerCase();
       });
     }
-
     cardSorters[this.sortState.button](
       sortedCardsData,
       sortOrderMap[this.sortState.order]
     );
-
     return sortedCardsData;
   }
 

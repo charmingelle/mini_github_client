@@ -5,6 +5,8 @@ import {
   UPDATE_DATE_SORT
 } from './components/SortingPanel';
 
+/* This function is for creating any sorting function, 
+which uses the order defined by key */
 function createSorter(key) {
   return function(arr, order) {
     arr.sort((a, b) => {
