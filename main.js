@@ -82,6 +82,8 @@
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__components_SortingPanel__ = __webpack_require__(1);
 
 
+/* This function is for creating any sorting function, 
+which uses the order defined by key */
 function createSorter(key) {
   return function(arr, order) {
     arr.sort((a, b) => {
@@ -203,6 +205,8 @@ class SortingPanel {
     this._sortingPanel.id = 'sorting-panel';
     Object(__WEBPACK_IMPORTED_MODULE_0__utils__["a" /* appendChildren */])(this._sortingPanel, buttons);
 
+    /* The sorting function (called in App class) is defined by id of the
+    clicked sort button and the sort order changed every time the button is clicked */
     this._sortingPanel.addEventListener('click', event => {
       const target = event.target.closest('.sort');
 
@@ -371,6 +375,9 @@ class App {
     );
   }
 
+  /* This function is for getting the list of languages 
+  of Filter panel language dropdown for it to stay synced with 
+  cards displayed on the page at the moment */
   getLanguages(cardsData) {
     return cardsData.reduce(
       (languages, element) => {
@@ -485,17 +492,17 @@ class App {
   sortCardsData(data) {
     let sortedCardsData = data.slice();
 
+    /* Github sorting by name is case insensitive. To implement the same
+    behavior, I have to make all repository names lowercase before sorting */
     if (__WEBPACK_IMPORTED_MODULE_2__SortingPanel__["b" /* REPO_NAME_SORT */] === this.sortState.button) {
       sortedCardsData.forEach(card => {
         card.name = card.name.toLowerCase();
       });
     }
-
     __WEBPACK_IMPORTED_MODULE_5__utils__["b" /* cardSorters */][this.sortState.button](
       sortedCardsData,
       sortOrderMap[this.sortState.order]
     );
-
     return sortedCardsData;
   }
 
@@ -626,6 +633,8 @@ class FirstScreen {
 
 
 
+const MILLISECONDS_IN_DAY = 86400000;
+
 const monthNamesShort = [
   'Jan',
   'Feb',
@@ -676,7 +685,6 @@ class Card {
     nameForkContainer.appendChild(titleContainer);
     titleContainer.appendChild(repoName);
 
-    //TODO: Replace with true/false flag
     if (this.isFork) {
       nameForkContainer.appendChild(this.createCardForkedRepo());
     }
@@ -710,7 +718,7 @@ class Card {
     let cardUpdatedDate = document.createElement('div');
 
     let curDate = new Date();
-    let dayDiff = Math.floor((curDate - this.date) / 86400000);
+    let dayDiff = Math.floor((curDate - this.date) / MILLISECONDS_IN_DAY);
 
     if (dayDiff === 0) {
       date = 'Updated today';
@@ -730,7 +738,6 @@ class Card {
 
     cardUpdatedDate.innerText = date;
     cardUpdatedDate.classList.add('card-update-date');
-
     return cardUpdatedDate;
   }
 
@@ -739,7 +746,6 @@ class Card {
 
     description.innerHTML = this.description;
     description.classList.add('card-description');
-
     return description;
   }
 
@@ -748,7 +754,6 @@ class Card {
 
     language.innerHTML = this.language;
     language.classList.add('card-language');
-
     return language;
   }
 
@@ -757,7 +762,6 @@ class Card {
 
     forked.innerHTML = 'This repo is a fork';
     forked.classList.add('card-is-repo-a-fork');
-
     return forked;
   }
 
@@ -766,7 +770,6 @@ class Card {
 
     counter.innerHTML = `&#9733; ${this.starsCount}`;
     counter.classList.add('card-stars-count');
-
     return counter;
   }
 }
@@ -784,10 +787,11 @@ class CardsList {
     return this._domElement;
   }
 
+  /* This function renews the array of card objects and 
+  recreates needed DOM elements at once */
   addCards(cardsData) {
     this.cards = cardsData.map((data, index) => new Card(data, index));
     Object(__WEBPACK_IMPORTED_MODULE_1__utils__["c" /* clean */])(this._domElement);
-
     this.draw();
   }
 
@@ -806,12 +810,13 @@ class CardsList {
     return cardContainer;
   }
 
+  /* In order not to draw each card DOM element on the page separately, 
+  I gather them in a container at first */
   draw() {
     let cardsBlockWrapper = document.createElement('div');
     cardsBlockWrapper.classList.add('cards-block-wrapper');
 
     Object(__WEBPACK_IMPORTED_MODULE_1__utils__["a" /* appendChildren */])(cardsBlockWrapper, this.cards.map(card => card.domElement));
-
     this._domElement.appendChild(cardsBlockWrapper);
   }
 }
@@ -855,6 +860,8 @@ class ModalWindow {
       requests.push(this.getForkedFrom(owner, repoName));
     }
 
+    /* Only when all the data is collected from the server,
+    we are ready to create the window DOM element */
     Promise.all(requests).then(gitHubData => {
       this.isWithData = true;
       this.initModalWindow(gitHubData, cardData);
@@ -874,6 +881,8 @@ class ModalWindow {
       this.getLanguagesContainer(languages)
     ];
 
+    /* There are repositories with no pull requests. If this is the case,
+    there is no need to draw the container */
     if (pullRequests.length) {
       children.push(this.getPrsContainer(pullRequests));
     }
@@ -1192,6 +1201,9 @@ class FilterPanel {
     });
   }
 
+  /* Every time the cards are filtered, I have to redraw the language dropdown. 
+  The language selected in it before redrawing should stay selected 
+  except the case when the filter result becomes empty */
   redrawLanguages(nextLanguages) {
     let selected = this._languageDropdown.options[
       this._languageDropdown.selectedIndex
