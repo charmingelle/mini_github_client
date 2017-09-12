@@ -1,5 +1,5 @@
 # mini_github_client
-Kottans entrance test
+[Kottans](http://kottans.org/) entrance test
 
 https://charmingelle.github.io/mini_github_client/
 
