@@ -8,13 +8,7 @@ import {
   getPageNumber,
   isScrolledToBottom,
   cardSorters,
-  filterByPresentOpenIssues,
-  filterByPresentTopics,
-  filterByStarred,
-  filterByUpdatedAfter,
-  filterForks,
-  filterSources,
-  filterByLanguage,
+  filterArrayByState,
   clean,
   appendChildren
 } from '../utils';
@@ -70,6 +64,7 @@ export default class App {
       this.onFilterPanelChange,
       this.languages
     );
+    this.filterFunctions;
   }
 
   /* This function is for getting the list of languages 
@@ -212,42 +207,7 @@ export default class App {
   filterCardsData() {
     let filteredCardsData = this.cardsData;
 
-    if (this.filterState.hasOpenIssues) {
-      filteredCardsData = filterByPresentOpenIssues(filteredCardsData);
-    }
-
-    if (this.filterState.hasTopics) {
-      filteredCardsData = filterByPresentTopics(filteredCardsData);
-    }
-
-    if (this.filterState.starred > 0) {
-      filteredCardsData = filterByStarred(
-        filteredCardsData,
-        this.filterState.starred
-      );
-    }
-
-    if (this.filterState.date) {
-      filteredCardsData = filterByUpdatedAfter(
-        filteredCardsData,
-        this.filterState.date
-      );
-    }
-
-    if (this.filterState.type === 'forks') {
-      filteredCardsData = filterForks(filteredCardsData);
-    }
-
-    if (this.filterState.type === 'sources') {
-      filteredCardsData = filterSources(filteredCardsData);
-    }
-
-    if (this.filterState.language !== 'All languages') {
-      filteredCardsData = filterByLanguage(
-        filteredCardsData,
-        this.filterState.language
-      );
-    }
+    filteredCardsData = filterArrayByState(filteredCardsData, this.filterState);
     this.languages = this.getLanguages(filteredCardsData);
     this.filterPanel.redrawLanguages(this.languages);
     return filteredCardsData;
