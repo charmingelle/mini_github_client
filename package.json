@@ -16,5 +16,8 @@
   },
   "dependencies": {
     "lodash": "^4.17.23"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.0.3"
   }
 }
